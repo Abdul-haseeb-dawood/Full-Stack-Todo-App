@@ -1,11 +1,11 @@
-import { Task } from '@/src/models/task';
+import { Task } from '@/models/task';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
 
 // Generic API call function with error handling
 const apiCall = async (endpoint: string, options: RequestInit = {}) => {
   const url = `${API_BASE_URL}${endpoint}`;
-  
+
   const config: RequestInit = {
     headers: {
       'Content-Type': 'application/json',
@@ -16,12 +16,12 @@ const apiCall = async (endpoint: string, options: RequestInit = {}) => {
 
   try {
     const response = await fetch(url, config);
-    
+
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
     }
-    
+
     return await response.json();
   } catch (error) {
     console.error(`API call failed: ${url}`, error);
@@ -49,42 +49,54 @@ export const taskApi = {
       if (filters.sort) params.append('sort', filters.sort);
       queryString = `?${params.toString()}`;
     }
-    
-    return apiCall(`/api/tasks${queryString}`);
+
+    return apiCall(`/api/v1/tasks${queryString}`);
   },
 
   // Get a specific task by ID
-  getTaskById: async (id: number) => {
-    return apiCall(`/api/tasks/${id}`);
+  getTaskById: async (id: string) => {
+    return apiCall(`/api/v1/${id}`);
   },
 
   // Create a new task
   createTask: async (taskData: Omit<Task, 'id' | 'created_at' | 'updated_at'>) => {
-    return apiCall('/api/tasks', {
+    // Ensure the completed field is included (defaults to false if not provided)
+    const taskPayload = {
+      ...taskData,
+      completed: taskData.completed ?? false
+    };
+
+    return apiCall('/api/v1', {
       method: 'POST',
-      body: JSON.stringify(taskData),
+      body: JSON.stringify(taskPayload),
     });
   },
 
   // Update an existing task
-  updateTask: async (id: number, taskData: Partial<Task>) => {
-    return apiCall(`/api/tasks/${id}`, {
+  updateTask: async (id: string, taskData: Partial<Task>) => {
+    return apiCall(`/api/v1/${id}`, {
       method: 'PUT',
       body: JSON.stringify(taskData),
     });
   },
 
   // Delete a task
-  deleteTask: async (id: number) => {
-    return apiCall(`/api/tasks/${id}`, {
+  deleteTask: async (id: string) => {
+    return apiCall(`/api/v1/${id}`, {
       method: 'DELETE',
     });
   },
 
-  // Toggle task completion status
-  toggleTaskCompletion: async (id: number) => {
-    return apiCall(`/api/tasks/${id}/complete`, {
-      method: 'PATCH',
+  // Toggle task completion status (using the update endpoint)
+  toggleTaskCompletion: async (id: string) => {
+    // We'll fetch the task first to get its current state
+    const task = await apiCall(`/api/v1/${id}`);
+    // Then update just the completed status
+    return apiCall(`/api/v1/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify({
+        completed: !task.completed
+      }),
     });
   },
 };

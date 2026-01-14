@@ -4,6 +4,7 @@ import React, { useEffect } from 'react';
 import { useTaskContext } from '@/contexts/TaskContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import TaskCard from './components/tasks/TaskCard';
+import TaskModal from './components/tasks/TaskModal';
 import GlassCard from './components/ui/GlassCard';
 import Toast from '../components/ui/Toast';
 import { TaskSkeleton } from './components/ui/Skeleton';
@@ -13,7 +14,7 @@ import SortControls from './components/tasks/SortControls';
 import LanguageToggle from './components/ui/LanguageToggle';
 
 const Dashboard = () => {
-  const { state, fetchTasks, openModal, hideToast } = useTaskContext();
+  const { state, fetchTasks, openModal, closeModal, hideToast } = useTaskContext();
   const { t } = useLanguage();
 
   useEffect(() => {
@@ -77,6 +78,14 @@ const Dashboard = () => {
           </div>
         )}
       </div>
+
+      {/* Task Modal */}
+      <TaskModal
+        isOpen={state.modal.isOpen}
+        onClose={closeModal}
+        type={state.modal.type}
+        taskId={state.modal.taskId}
+      />
 
       {/* Toast notification */}
       <Toast toast={state.toast} onClose={hideToast} />

@@ -1,6 +1,6 @@
 // Task Model - The primary data structure representing a user's todo item
 export interface Task {
-  id: number;
+  id: string; // UUID string
   title: string;
   description?: string;
   priority: 'high' | 'medium' | 'low';
@@ -57,7 +57,7 @@ export interface Toast {
 export interface ModalState {
   isOpen: boolean;
   type: 'add' | 'edit';
-  taskId?: number; // for edit mode
+  taskId?: string; // for edit mode
 }
 
 // Form Data Models
@@ -68,6 +68,7 @@ export interface TaskFormData {
   description?: string;
   priority: 'high' | 'medium' | 'low';
   tags: string[];
+  completed: boolean;
   due_date?: string;
   recurrence?: 'daily' | 'weekly' | 'monthly' | null;
 }

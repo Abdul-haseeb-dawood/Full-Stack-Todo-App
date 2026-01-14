@@ -9,7 +9,7 @@ type TaskAction =
   | { type: 'SET_TASKS'; payload: Task[] }
   | { type: 'ADD_TASK'; payload: Task }
   | { type: 'UPDATE_TASK'; payload: Task }
-  | { type: 'DELETE_TASK'; payload: number }
+  | { type: 'DELETE_TASK'; payload: string }
   | { type: 'SET_LOADING'; payload: boolean }
   | { type: 'SET_ERROR'; payload: string | null }
   | { type: 'SET_FILTER'; payload: TaskFilter }
@@ -164,10 +164,10 @@ const TaskContext = createContext<{
   dispatch: React.Dispatch<TaskAction>;
   fetchTasks: () => Promise<void>;
   addTask: (taskData: Omit<Task, 'id' | 'created_at' | 'updated_at'>) => Promise<void>;
-  updateTask: (id: number, taskData: Partial<Task>) => Promise<void>;
-  deleteTask: (id: number) => Promise<void>;
-  toggleTaskCompletion: (id: number) => Promise<void>;
-  openModal: (type: 'add' | 'edit', taskId?: number) => void;
+  updateTask: (id: string, taskData: Partial<Task>) => Promise<void>;
+  deleteTask: (id: string) => Promise<void>;
+  toggleTaskCompletion: (id: string) => Promise<void>;
+  openModal: (type: 'add' | 'edit', taskId?: string) => void;
   closeModal: () => void;
   showToast: (toast: Toast) => void;
   hideToast: () => void;
@@ -213,7 +213,7 @@ export const TaskProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   // Update an existing task
-  const updateTask = React.useCallback(async (id: number, taskData: Partial<Task>) => {
+  const updateTask = React.useCallback(async (id: string, taskData: Partial<Task>) => {
     try {
       const updatedTask = await taskApi.updateTask(id, taskData);
       dispatch({ type: 'UPDATE_TASK', payload: updatedTask });
@@ -236,7 +236,7 @@ export const TaskProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   // Delete a task
-  const deleteTask = React.useCallback(async (id: number) => {
+  const deleteTask = React.useCallback(async (id: string) => {
     try {
       await taskApi.deleteTask(id);
       dispatch({ type: 'DELETE_TASK', payload: id });
@@ -259,7 +259,7 @@ export const TaskProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   // Toggle task completion
-  const toggleTaskCompletion = React.useCallback(async (id: number) => {
+  const toggleTaskCompletion = React.useCallback(async (id: string) => {
     try {
       const updatedTask = await taskApi.toggleTaskCompletion(id);
       dispatch({ type: 'UPDATE_TASK', payload: updatedTask });
@@ -282,7 +282,7 @@ export const TaskProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   // Open modal
-  const openModal = React.useCallback((type: 'add' | 'edit', taskId?: number) => {
+  const openModal = React.useCallback((type: 'add' | 'edit', taskId?: string) => {
     dispatch({
       type: 'SET_MODAL',
       payload: { isOpen: true, type, taskId },

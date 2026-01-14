@@ -14,6 +14,7 @@ const TaskForm: React.FC<TaskFormProps> = ({ initialData, onSubmit, onCancel }) 
     title: '',
     description: '',
     priority: 'medium',
+    completed: false,
     tags: [],
     due_date: '',
     recurrence: null,
