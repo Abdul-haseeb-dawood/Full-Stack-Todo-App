@@ -15,9 +15,10 @@ app = FastAPI(
     version="1.0.0"
 )
 
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], 
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -34,10 +35,6 @@ def read_root():
 def health_check():
     return {"status": "healthy"}
 
-@app.on_event("startup")
-async def on_startup():
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)

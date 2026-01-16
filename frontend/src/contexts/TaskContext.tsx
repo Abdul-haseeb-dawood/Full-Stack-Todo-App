@@ -182,7 +182,7 @@ export const TaskProvider = ({ children }: { children: ReactNode }) => {
     try {
       dispatch({ type: 'SET_LOADING', payload: true });
       const response = await taskApi.getTasks();
-      dispatch({ type: 'SET_TASKS', payload: response.tasks });
+      dispatch({ type: 'SET_TASKS', payload: response });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to fetch tasks';
       dispatch({ type: 'SET_ERROR', payload: errorMessage });

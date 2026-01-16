@@ -31,31 +31,14 @@ const apiCall = async (endpoint: string, options: RequestInit = {}) => {
 
 // Task API functions
 export const taskApi = {
-  // Get all tasks with optional filters
-  getTasks: async (filters?: {
-    status?: 'completed' | 'incomplete';
-    priority?: 'high' | 'medium' | 'low';
-    dueDate?: string;
-    keyword?: string;
-    sort?: 'due_date' | 'priority' | 'alphabetical';
-  }) => {
-    let queryString = '';
-    if (filters) {
-      const params = new URLSearchParams();
-      if (filters.status) params.append('status', filters.status);
-      if (filters.priority) params.append('priority', filters.priority);
-      if (filters.dueDate) params.append('due_date', filters.dueDate);
-      if (filters.keyword) params.append('keyword', filters.keyword);
-      if (filters.sort) params.append('sort', filters.sort);
-      queryString = `?${params.toString()}`;
-    }
-
-    return apiCall(`/api/v1/tasks${queryString}`);
+  // Get all tasks
+  getTasks: async () => {
+    return apiCall('/api/v1/tasks');
   },
 
   // Get a specific task by ID
   getTaskById: async (id: string) => {
-    return apiCall(`/api/v1/${id}`);
+    return apiCall(`/api/v1/tasks/${id}`);
   },
 
   // Create a new task
@@ -66,7 +49,7 @@ export const taskApi = {
       completed: taskData.completed ?? false
     };
 
-    return apiCall('/api/v1', {
+    return apiCall('/api/v1/tasks', {
       method: 'POST',
       body: JSON.stringify(taskPayload),
     });
@@ -74,29 +57,56 @@ export const taskApi = {
 
   // Update an existing task
   updateTask: async (id: string, taskData: Partial<Task>) => {
-    return apiCall(`/api/v1/${id}`, {
+    // Filter out undefined values and empty strings to prevent validation errors
+    const filteredData = {};
+    for (const [key, value] of Object.entries(taskData)) {
+      // Only include values that are defined and not empty strings (for string fields)
+      if (value !== undefined && !(typeof value === 'string' && value.trim() === '')) {
+        filteredData[key] = value;
+      }
+    }
+
+    return apiCall(`/api/v1/tasks/${id}`, {
       method: 'PUT',
-      body: JSON.stringify(taskData),
+      body: JSON.stringify(filteredData),
     });
   },
 
   // Delete a task
   deleteTask: async (id: string) => {
-    return apiCall(`/api/v1/${id}`, {
+    const url = `${API_BASE_URL}/api/v1/tasks/${id}`;
+
+    const config: RequestInit = {
       method: 'DELETE',
-    });
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    };
+
+    try {
+      const response = await fetch(url, config);
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+      }
+
+      // Handle 204 No Content response for delete
+      if (response.status === 204) {
+        return {}; // Return empty object for successful deletion
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error(`API call failed: ${url}`, error);
+      throw error;
+    }
   },
 
-  // Toggle task completion status (using the update endpoint)
+  // Toggle task completion status
   toggleTaskCompletion: async (id: string) => {
-    // We'll fetch the task first to get its current state
-    const task = await apiCall(`/api/v1/${id}`);
-    // Then update just the completed status
-    return apiCall(`/api/v1/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify({
-        completed: !task.completed
-      }),
+    return apiCall(`/api/v1/tasks/${id}/complete`, {
+      method: 'PATCH',
     });
   },
 };

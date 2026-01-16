@@ -37,18 +37,20 @@ class TaskRepository:
         db_task = await self.get_task_by_id(task_id)
         if not db_task:
             return None
-        
+
         # Prepare update data, excluding None values
         update_data = task_update.model_dump(exclude_unset=True)
-        
+
         # Update the task
         stmt = update(Task).where(Task.id == task_id).values(**update_data)
         await self.db_session.execute(stmt)
-        
+
+        # Commit the transaction before refreshing
+        await self.db_session.commit()
+
         # Refresh the task to get updated values
         await self.db_session.refresh(db_task)
-        await self.db_session.commit()
-        
+
         return db_task
 
     async def delete_task(self, task_id: UUID) -> bool:

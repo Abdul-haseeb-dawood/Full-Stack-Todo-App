@@ -18,7 +18,7 @@ def get_task_service(db_session: AsyncSession = Depends(get_async_session)):
     return TaskService(task_repo)
 
 
-@router.post("/", response_model=TaskResponse, status_code=201)
+@router.post("/tasks", response_model=TaskResponse, status_code=201)
 async def create_task(
     task_create: TaskCreate,
     task_service: TaskService = Depends(get_task_service)
@@ -30,7 +30,7 @@ async def create_task(
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.get("/", response_model=List[TaskResponse])
+@router.get("/tasks", response_model=List[TaskResponse])
 async def get_all_tasks(
     task_service: TaskService = Depends(get_task_service)
 ):
@@ -41,7 +41,7 @@ async def get_all_tasks(
         raise HTTPException(status_code=500, detail=f"Error retrieving tasks: {str(e)}")
 
 
-@router.get("/{task_id}", response_model=TaskResponse)
+@router.get("/tasks/{task_id}", response_model=TaskResponse)
 async def get_task_by_id(
     task_id: UUID,
     task_service: TaskService = Depends(get_task_service)
@@ -59,7 +59,7 @@ async def get_task_by_id(
         raise HTTPException(status_code=500, detail=f"Error retrieving task: {str(e)}")
 
 
-@router.put("/{task_id}", response_model=TaskResponse)
+@router.put("/tasks/{task_id}", response_model=TaskResponse)
 async def update_task(
     task_id: UUID,
     task_update: TaskUpdate,
@@ -78,7 +78,28 @@ async def update_task(
         raise HTTPException(status_code=500, detail=f"Error updating task: {str(e)}")
 
 
-@router.delete("/{task_id}", status_code=204)
+@router.patch("/tasks/{task_id}/complete", response_model=TaskResponse)
+async def toggle_task_completion(
+    task_id: UUID,
+    task_service: TaskService = Depends(get_task_service)
+):
+    """Toggle the completion status of a task"""
+    try:
+        task = await task_service.get_task_by_id(task_id)
+        if not task:
+            raise HTTPException(status_code=404, detail=f"Task with id {task_id} not found")
+
+        # Update the completion status
+        updated_task = await task_service.update_task(task_id, TaskUpdate(completed=not task.completed))
+        return updated_task
+    except ValueError:
+        # Raised when task_id is not a valid UUID
+        raise HTTPException(status_code=400, detail="Invalid task ID format")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error toggling task completion: {str(e)}")
+
+
+@router.delete("/tasks/{task_id}", status_code=204)
 async def delete_task(
     task_id: UUID,
     task_service: TaskService = Depends(get_task_service)

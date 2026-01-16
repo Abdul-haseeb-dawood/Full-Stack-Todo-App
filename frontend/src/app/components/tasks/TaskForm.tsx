@@ -24,7 +24,10 @@ const TaskForm: React.FC<TaskFormProps> = ({ initialData, onSubmit, onCancel }) 
 
   useEffect(() => {
     if (initialData) {
-      setFormData(initialData);
+      setFormData({
+        ...initialData,
+        tags: initialData.tags || [], // Ensure tags is always an array
+      });
     }
   }, [initialData]);
 
