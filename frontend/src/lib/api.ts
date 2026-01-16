@@ -58,7 +58,7 @@ export const taskApi = {
   // Update an existing task
   updateTask: async (id: string, taskData: Partial<Task>) => {
     // Filter out undefined values and empty strings to prevent validation errors
-    const filteredData = {};
+    const filteredData: Record<string, any> = {};
     for (const [key, value] of Object.entries(taskData)) {
       // Only include values that are defined and not empty strings (for string fields)
       if (value !== undefined && !(typeof value === 'string' && value.trim() === '')) {

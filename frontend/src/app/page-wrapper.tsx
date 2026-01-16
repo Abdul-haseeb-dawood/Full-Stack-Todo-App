@@ -1,13 +1,13 @@
 'use client';
 
 import React from 'react';
-import { ProtectedRoute } from '@/components/ProtectedRoute';
-import Dashboard from './page-content'; // We'll create this next
+import ProtectedRoute from '@/components/ProtectedRoute';
+import DashboardContent from './components/DashboardContent';
 
 const HomePage = () => {
   return (
     <ProtectedRoute>
-      <Dashboard />
+      <DashboardContent />
     </ProtectedRoute>
   );
 };

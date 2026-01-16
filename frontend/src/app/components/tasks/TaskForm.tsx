@@ -178,7 +178,17 @@ const TaskForm: React.FC<TaskFormProps> = ({ initialData, onSubmit, onCancel }) 
           id="recurrence"
           name="recurrence"
           value={formData.recurrence || ''}
-          onChange={(e) => setFormData(prev => ({ ...prev, recurrence: e.target.value || null }))}
+          onChange={(e) => {
+            const value = e.target.value || null;
+            // Validate that the value is one of the allowed options
+            const validRecurrenceValues: Array<'daily' | 'weekly' | 'monthly' | null> = ['daily', 'weekly', 'monthly', null];
+            const isValidValue = validRecurrenceValues.includes(value as any);
+
+            setFormData(prev => ({
+              ...prev,
+              recurrence: isValidValue ? value as 'daily' | 'weekly' | 'monthly' | null : null
+            }));
+          }}
           className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border"
         >
           <option value="">{t('task.recurrence')}...</option>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { useLanguage } from '@/src/contexts/LanguageContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface RecurrenceBadgeProps {
   recurrence: 'daily' | 'weekly' | 'monthly' | null;

@@ -47,7 +47,11 @@ export default function DebugInfoPage() {
             alert(`Health check: ${response.status} - ${await response.text()}`);
           } catch (error) {
             console.error('Error:', error);
-            alert(`Error: ${error.message}`);
+            if (error instanceof Error) {
+              alert(`Error: ${error.message}`);
+            } else {
+              alert(`Error: ${String(error)}`);
+            }
           }
         }}
       >

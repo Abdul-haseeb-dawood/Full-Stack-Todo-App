@@ -4,8 +4,8 @@
 import { useState, useEffect } from 'react';
 
 export default function DebugApiPage() {
-  const [data, setData] = useState(null);
-  const [error, setError] = useState(null);
+  const [data, setData] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -24,7 +24,11 @@ export default function DebugApiPage() {
         setData(result);
       } catch (err) {
         console.error('Error fetching data:', err);
-        setError(err.message);
+        if (err instanceof Error) {
+          setError(err.message);
+        } else {
+          setError(String(err));
+        }
       } finally {
         setLoading(false);
       }
