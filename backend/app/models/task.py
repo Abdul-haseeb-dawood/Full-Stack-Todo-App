@@ -7,6 +7,7 @@ import uuid
 class Task(BaseModel):
     __tablename__ = "tasks"
 
+    # Using PostgreSQL UUID type
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     title = Column(String(255), nullable=False)
     description = Column(Text, nullable=True)

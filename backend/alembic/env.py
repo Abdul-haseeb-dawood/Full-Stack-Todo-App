@@ -5,9 +5,13 @@ from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import AsyncEngine, async_engine_from_config
 from alembic import context
 import os
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Import your models here
-from app.models.task import Task
+from app.models import Task, User  # Import all models
 from app.db.database import Base
 
 # this is the Alembic Config object
@@ -21,13 +25,10 @@ if config.config_file_name is not None:
 # add your model's MetaData object here for 'autogenerate' support
 target_metadata = Base.metadata
 
-# Set the sqlalchemy.url from environment variable or default to SQLite
+# Set the sqlalchemy.url from environment variable
 DATABASE_URL = os.getenv("DATABASE_URL")
-if not DATABASE_URL:
-    # Use SQLite for local development
-    DATABASE_URL = f"postgresql+asyncpg://neondb_owner:npg_Vi0MAbn1SrQe@ep-snowy-cherry-ah8bfctf-pooler.c-3.us-east-1.aws.neon.tech/neondb"
-
-config.set_main_option('sqlalchemy.url', DATABASE_URL)
+if DATABASE_URL:
+    config.set_main_option('sqlalchemy.url', DATABASE_URL)
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:

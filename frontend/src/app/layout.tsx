@@ -2,6 +2,7 @@
 
 import { TaskProvider } from '@/contexts/TaskContext';
 import { LanguageProvider } from '@/contexts/LanguageContext';
+import { AuthProvider } from '@/contexts/AuthContext';
 import '@/../styles/globals.css';
 
 export default function RootLayout({
@@ -12,11 +13,13 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <TaskProvider>
-          <LanguageProvider>
-            {children}
-          </LanguageProvider>
-        </TaskProvider>
+        <AuthProvider>
+          <TaskProvider>
+            <LanguageProvider>
+              {children}
+            </LanguageProvider>
+          </TaskProvider>
+        </AuthProvider>
       </body>
     </html>
   );

@@ -1,7 +1,7 @@
 """Initial task table
 
 Revision ID: 001_initial_task_table
-Revises: 
+Revises:
 Create Date: 2026-01-11 11:30:00
 
 """
@@ -27,7 +27,7 @@ def upgrade() -> None:
         sa.Column('description', sa.Text(), nullable=True),
         sa.Column('completed', sa.Boolean(), nullable=False, default=False),
         sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
-        sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), 
+        sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'),
                   onupdate=sa.text('now()'), nullable=False),
         sa.PrimaryKeyConstraint('id')
     )
@@ -41,6 +41,6 @@ def downgrade() -> None:
     # Drop indexes
     op.drop_index(op.f('ix_tasks_completed'), table_name='tasks')
     op.drop_index(op.f('ix_tasks_created_at'), table_name='tasks')
-    
+
     # Drop the tasks table
     op.drop_table('tasks')

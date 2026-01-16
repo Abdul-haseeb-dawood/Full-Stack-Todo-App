@@ -4,9 +4,13 @@ sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.routers import tasks
+from app.routers.auth import router as auth_router
 import uvicorn
 from app.db.database import engine
 from app.db.base import Base
+
+# Import all models to ensure they are registered with SQLAlchemy
+from app.models import Task, User  # noqa: F401
 
 
 app = FastAPI(
@@ -26,6 +30,16 @@ app.add_middleware(
 
 # Include the tasks router
 app.include_router(tasks.router, prefix="/api/v1", tags=["tasks"])
+
+# Include the auth router
+app.include_router(auth_router)
+
+
+# Create all tables if they don't exist
+@app.on_event("startup")
+async def startup_event():
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
 
 @app.get("/")
 def read_root():

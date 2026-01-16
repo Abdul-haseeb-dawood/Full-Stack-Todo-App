@@ -6,10 +6,10 @@ import os
 # =========================
 # DATABASE ENGINE (ASYNC)
 
-# Use PostgreSQL database
-DATABASE_URL = "postgresql+asyncpg://neondb_owner:npg_Vi0MAbn1SrQe@ep-snowy-cherry-ah8bfctf-pooler.c-3.us-east-1.aws.neon.tech/neondb"
+# Use database URL from settings
+DATABASE_URL = settings.database_url
 
-# PostgreSQL configuration
+# Configuration for database engine
 engine = create_async_engine(DATABASE_URL, echo=True)
 # =========================
 # ASYNC SESSION
