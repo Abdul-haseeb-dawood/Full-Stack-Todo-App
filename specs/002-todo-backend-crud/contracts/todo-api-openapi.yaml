@@ -8,7 +8,7 @@ info:
     url: http://www.example.com/support
     email: support@example.com
 servers:
-  - url: http://localhost:8000/api/v1
+  - url: https://abdul-haseeb14-full-stack-todo.hf.space/api/v1
     description: Development server
   - url: https://api.todoapp.com/v1
     description: Production server

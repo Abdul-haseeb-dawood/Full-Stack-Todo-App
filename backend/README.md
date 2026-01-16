@@ -101,9 +101,9 @@ alembic upgrade head
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-The application will be available at `http://localhost:8000`.
+The application will be available at `https://abdul-haseeb14-full-stack-todo.hf.space`.
 
-API documentation will be available at `http://localhost:8000/docs`.
+API documentation will be available at `https://abdul-haseeb14-full-stack-todo.hf.space/docs`.
 
 ## API Endpoints
 

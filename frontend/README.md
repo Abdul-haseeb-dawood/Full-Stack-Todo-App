@@ -30,7 +30,7 @@ This is a luxury-grade frontend todo application built with Next.js, TypeScript,
 
 2. Create a `.env.local` file in the frontend root directory:
    ```env
-   NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
+   NEXT_PUBLIC_API_BASE_URL=https://abdul-haseeb14-full-stack-todo.hf.space
    NEXT_PUBLIC_DEFAULT_LANGUAGE=en
    ```
 

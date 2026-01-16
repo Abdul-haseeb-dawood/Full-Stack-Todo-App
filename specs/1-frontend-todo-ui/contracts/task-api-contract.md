@@ -12,7 +12,7 @@ This document defines the API contracts between the luxury frontend todo applica
 ### Base URL
 ```
 https://api.example.com (production)
-http://localhost:8000 (development)
+https://abdul-haseeb14-full-stack-todo.hf.space (development)
 ```
 
 ### Common Headers

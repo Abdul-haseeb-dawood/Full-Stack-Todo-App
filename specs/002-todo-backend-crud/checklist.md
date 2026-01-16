@@ -90,7 +90,7 @@
 ## Notes
 
 - Remember to test each endpoint individually before moving to the next task
-- Use the Swagger UI at http://localhost:8000/docs to test endpoints
+- Use the Swagger UI at https://abdul-haseeb14-full-stack-todo.hf.space/docs to test endpoints
 - Check the database directly to verify that operations are persisted
 - Pay special attention to validation rules and error handling
 - Ensure the application can handle concurrent requests properly

@@ -38,7 +38,9 @@ async def get_all_tasks(
     try:
         return await task_service.get_all_tasks()
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error retrieving tasks: {str(e)}")
+        # Log the actual error for debugging
+        print(f"Database error in get_all_tasks: {str(e)}")
+        raise HTTPException(status_code=503, detail="Service temporarily unavailable. Please try again later.")
 
 
 @router.get("/tasks/{task_id}", response_model=TaskResponse)
@@ -56,7 +58,13 @@ async def get_task_by_id(
         # Raised when task_id is not a valid UUID
         raise HTTPException(status_code=400, detail="Invalid task ID format")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error retrieving task: {str(e)}")
+        # Check if this is a database connection error
+        error_str = str(e)
+        if "connection" in error_str.lower() or "database" in error_str.lower() or "sqlalchemy" in error_str.lower():
+            print(f"Database error in get_task_by_id: {error_str}")
+            raise HTTPException(status_code=503, detail="Service temporarily unavailable. Please try again later.")
+        else:
+            raise HTTPException(status_code=500, detail=f"Error retrieving task: {str(e)}")
 
 
 @router.put("/tasks/{task_id}", response_model=TaskResponse)
@@ -75,7 +83,13 @@ async def update_task(
         # Raised when task_id is not a valid UUID
         raise HTTPException(status_code=400, detail="Invalid task ID format")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error updating task: {str(e)}")
+        # Check if this is a database connection error
+        error_str = str(e)
+        if "connection" in error_str.lower() or "database" in error_str.lower() or "sqlalchemy" in error_str.lower():
+            print(f"Database error in update_task: {error_str}")
+            raise HTTPException(status_code=503, detail="Service temporarily unavailable. Please try again later.")
+        else:
+            raise HTTPException(status_code=500, detail=f"Error updating task: {str(e)}")
 
 
 @router.patch("/tasks/{task_id}/complete", response_model=TaskResponse)
@@ -96,7 +110,13 @@ async def toggle_task_completion(
         # Raised when task_id is not a valid UUID
         raise HTTPException(status_code=400, detail="Invalid task ID format")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error toggling task completion: {str(e)}")
+        # Check if this is a database connection error
+        error_str = str(e)
+        if "connection" in error_str.lower() or "database" in error_str.lower() or "sqlalchemy" in error_str.lower():
+            print(f"Database error in toggle_task_completion: {error_str}")
+            raise HTTPException(status_code=503, detail="Service temporarily unavailable. Please try again later.")
+        else:
+            raise HTTPException(status_code=500, detail=f"Error toggling task completion: {str(e)}")
 
 
 @router.delete("/tasks/{task_id}", status_code=204)
@@ -114,4 +134,10 @@ async def delete_task(
         # Raised when task_id is not a valid UUID
         raise HTTPException(status_code=400, detail="Invalid task ID format")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error deleting task: {str(e)}")
+        # Check if this is a database connection error
+        error_str = str(e)
+        if "connection" in error_str.lower() or "database" in error_str.lower() or "sqlalchemy" in error_str.lower():
+            print(f"Database error in delete_task: {error_str}")
+            raise HTTPException(status_code=503, detail="Service temporarily unavailable. Please try again later.")
+        else:
+            raise HTTPException(status_code=500, detail=f"Error deleting task: {str(e)}")

@@ -1,6 +1,6 @@
 import { Task } from '@/models/task';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://abdul-haseeb14-full-stack-todo.hf.space';
 
 // Generic API call function with error handling
 const apiCall = async (endpoint: string, options: RequestInit = {}) => {
