@@ -1,10 +1,14 @@
 import sys
 import os
-sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+# Add the project root to the Python path
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, project_root)
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.routers import tasks
 from app.routers.auth import router as auth_router
+from app.routers.chat import router as chat_router
 import uvicorn
 from app.db.database import engine
 from app.db.base import Base
@@ -33,6 +37,9 @@ app.include_router(tasks.router, prefix="/api/v1", tags=["tasks"])
 
 # Include the auth router
 app.include_router(auth_router)
+
+# Include the chat router
+app.include_router(chat_router, prefix="/api/v1", tags=["chat"])
 
 
 # Create all tables if they don't exist

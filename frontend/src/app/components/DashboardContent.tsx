@@ -13,6 +13,7 @@ import SearchInput from '../components/ui/SearchInput';
 import FilterControls from '../components/tasks/FilterControls';
 import SortControls from '../components/tasks/SortControls';
 import LanguageToggle from '../components/ui/LanguageToggle';
+import FloatingChatButton from '@/components/chatbot/FloatingChatButton';
 
 const DashboardContent = () => {
   const { state, fetchTasks, openModal, closeModal, hideToast } = useTaskContext();
@@ -108,6 +109,9 @@ const DashboardContent = () => {
 
       {/* Toast notification */}
       <Toast toast={state.toast} onClose={hideToast} />
+
+      {/* Floating Chat Button */}
+      <FloatingChatButton />
     </div>
   );
 };

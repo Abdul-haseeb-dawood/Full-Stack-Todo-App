@@ -6,6 +6,7 @@ class Settings(BaseSettings):
     database_url: str
     environment: str = "development"
     log_level: str = "info"
+    gemini_api_key: Optional[str] = None
 
     class Config:
         env_file = ".env"
