@@ -1,9 +1,10 @@
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy import text
 import asyncio
+from app.core.settings import settings
 
 # Use your Neon PostgreSQL database
-DATABASE_URL = "postgresql+asyncpg://neondb_owner:npg_Vi0MAbn1SrQe@ep-snowy-cherry-ah8bfctf-pooler.c-3.us-east-1.aws.neon.tech/neondb"
+DATABASE_URL = settings.database_url
 
 async def test_connection():
     try:

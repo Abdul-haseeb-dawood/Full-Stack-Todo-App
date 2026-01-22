@@ -6,6 +6,7 @@ from datetime import datetime
 
 
 class TaskBase(BaseModel):
+    user_id: Optional[str] = None
     title: str = Field(..., min_length=1, max_length=255)
     description: Optional[str] = Field(None, max_length=1000)
     completed: bool = False
@@ -17,6 +18,7 @@ class TaskCreate(TaskBase):
 
 
 class TaskUpdate(BaseModel):
+    user_id: Optional[str] = None
     title: Optional[str] = Field(None, min_length=1, max_length=255)
     description: Optional[str] = Field(None, max_length=1000)
     completed: Optional[bool] = None

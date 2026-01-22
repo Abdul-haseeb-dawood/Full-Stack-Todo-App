@@ -1,8 +1,10 @@
-# spec Development Guidelines
+﻿# spec Development Guidelines
 
 Auto-generated from all feature plans. Last updated: 2026-01-11
 
 ## Active Technologies
+- TypeScript 5.x, JavaScript ES2022 + Next.js 16+ (App Router), OpenAI ChatKit, Tailwind CSS, React 18+ (phase3/Chatbot)
+- Client-side state management using React hooks (temporary), with API integration for backend persistence (phase3/Chatbot)
 
 - Python + FastAPI (002-todo-backend-crud)
 - PostgreSQL (002-todo-backend-crud)
@@ -56,10 +58,10 @@ cd backend; uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 Python: Follow standard conventions with async/await patterns for database operations, proper error handling, and separation of concerns between routers, services, repositories, models, and schemas.
 
 ## Recent Changes
+- phase3/Chatbot: Added TypeScript 5.x, JavaScript ES2022 + Next.js 16+ (App Router), OpenAI ChatKit, Tailwind CSS, React 18+
 
 - 002-todo-backend-crud: Added Python + FastAPI
 - 002-todo-backend-crud: Added PostgreSQL
-- 002-todo-backend-crud: Added SQLAlchemy
 
 <!-- MANUAL ADDITIONS START -->
 <!-- For the Todo Application Backend feature, focus on the following key points:

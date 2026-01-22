@@ -31,6 +31,19 @@ class TaskRepository:
         result = await self.db_session.execute(stmt)
         return result.scalars().all()
 
+    async def get_tasks_by_filters(self, filters: dict) -> List[Task]:
+        """Get tasks by filters (e.g., user_id, completed status)"""
+        stmt = select(Task)
+
+        # Apply filters
+        for attr, value in filters.items():
+            if hasattr(Task, attr):
+                stmt = stmt.where(getattr(Task, attr) == value)
+
+        stmt = stmt.order_by(Task.created_at.desc())
+        result = await self.db_session.execute(stmt)
+        return result.scalars().all()
+
     async def update_task(self, task_id: UUID, task_update: TaskUpdate) -> Optional[Task]:
         """Update a task"""
         # Get the task to update

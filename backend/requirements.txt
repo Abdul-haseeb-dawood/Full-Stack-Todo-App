@@ -7,3 +7,6 @@ pydantic==2.5.0
 pydantic-settings==2.1.0
 python-dotenv==1.0.0
 passlib[argon2]==1.7.4
+openai
+mcp-spec
+google-generativeai

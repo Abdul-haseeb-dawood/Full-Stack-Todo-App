@@ -5,12 +5,15 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.routers import tasks
 from app.routers.auth import router as auth_router
+from app.chatbot.router import router as chat_router
+from app.chatbot.router import router as chatbot_router
+from app.routers.agent_router import router as agent_router
 import uvicorn
 from app.db.database import engine
 from app.db.base import Base
 
 # Import all models to ensure they are registered with SQLAlchemy
-from app.models import Task, User  # noqa: F401
+from app.models import Task, User, Conversation, Message  # noqa: F401
 
 
 app = FastAPI(
@@ -33,6 +36,15 @@ app.include_router(tasks.router, prefix="/api/v1", tags=["tasks"])
 
 # Include the auth router
 app.include_router(auth_router)
+
+# Include the chat router
+app.include_router(chat_router, prefix="/api", tags=["chat"])
+
+# Include the chatbot router
+app.include_router(chatbot_router, prefix="/api", tags=["chatbot"])
+
+# Include the agent router
+app.include_router(agent_router, prefix="/api", tags=["agent"])
 
 
 # Create all tables if they don't exist

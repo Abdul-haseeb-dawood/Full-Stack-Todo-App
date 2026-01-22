@@ -1,0 +1,411 @@
+from fastapi import APIRouter, HTTPException, Depends
+from pydantic import BaseModel
+from typing import List, Optional, Dict, Any
+import uuid
+from datetime import datetime
+from sqlalchemy.ext.asyncio import AsyncSession
+from app.db.database import get_async_session
+from app.schemas.message import ConversationCreate, MessageCreate
+from app.services.message_service import ConversationService, MessageService
+from app.utils.mcp_tools import MCPTaskTools
+from app.core.settings import settings
+import json
+import re
+
+# Import Google Generative AI
+import google.generativeai as genai
+
+router = APIRouter(prefix="/chat", tags=["chat"])
+
+# Models
+class ChatRequest(BaseModel):
+    conversation_id: Optional[str] = None
+    message: str
+    user_id: str  # Required for identifying the user
+
+
+class ToolCall(BaseModel):
+    type: str
+    params: dict
+
+
+class ChatResponse(BaseModel):
+    conversation_id: str
+    response: str
+    tool_calls: List[ToolCall]
+    timestamp: str
+
+
+@router.post("/{user_id}", response_model=ChatResponse)
+async def chat(
+    user_id: str,
+    request: ChatRequest,
+    db_session: AsyncSession = Depends(get_async_session)
+):
+    """
+    Initiates a conversation with the AI assistant or continues an existing conversation.
+    """
+    try:
+        # Initialize services
+        conversation_service = ConversationService(db_session)
+        message_service = MessageService(db_session)
+        mcp_tools = MCPTaskTools(db_session)
+
+        # Parse conversation ID
+        conversation_id = None
+        if request.conversation_id:
+            try:
+                conversation_id = uuid.UUID(request.conversation_id)
+            except ValueError:
+                raise HTTPException(status_code=400, detail="Invalid conversation ID format")
+
+        # If no conversation ID provided, create a new one
+        if not conversation_id:
+            conversation_data = ConversationCreate(user_id=user_id)
+            conversation = await conversation_service.create_conversation(conversation_data)
+            conversation_id = conversation.id
+        else:
+            # Verify conversation exists
+            existing_conversation = await conversation_service.get_conversation_by_id(conversation_id)
+            if not existing_conversation:
+                raise HTTPException(status_code=404, detail="Conversation not found")
+
+        # Get conversation history
+        messages = await message_service.get_messages_by_conversation(conversation_id)
+
+        # Create user message
+        user_message_data = MessageCreate(
+            user_id=user_id,
+            conversation_id=conversation_id,
+            role="user",
+            content=request.message
+        )
+        user_message = await message_service.create_message(user_message_data)
+
+        # Prepare tools for Gemini
+        tools = [
+            {
+                "name": "add_task",
+                "description": "Create a new task",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "user_id": {"type": "string", "description": "The user ID"},
+                        "title": {"type": "string", "description": "The task title"},
+                        "description": {"type": "string", "description": "The task description (optional)"}
+                    },
+                    "required": ["user_id", "title"]
+                }
+            },
+            {
+                "name": "list_tasks",
+                "description": "Retrieve tasks from the list",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "user_id": {"type": "string", "description": "The user ID"},
+                        "status": {"type": "string", "description": "Filter status: all, pending, or completed (optional)"}
+                    },
+                    "required": ["user_id"]
+                }
+            },
+            {
+                "name": "complete_task",
+                "description": "Mark a task as complete",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "user_id": {"type": "string", "description": "The user ID"},
+                        "task_id": {"type": "string", "description": "The task ID (UUID)"}
+                    },
+                    "required": ["user_id", "task_id"]
+                }
+            },
+            {
+                "name": "delete_task",
+                "description": "Remove a task from the list",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "user_id": {"type": "string", "description": "The user ID"},
+                        "task_id": {"type": "string", "description": "The task ID (UUID)"}
+                    },
+                    "required": ["user_id", "task_id"]
+                }
+            },
+            {
+                "name": "update_task",
+                "description": "Modify task title or description",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "user_id": {"type": "string", "description": "The user ID"},
+                        "task_id": {"type": "string", "description": "The task ID (UUID)"},
+                        "title": {"type": "string", "description": "New title (optional)"},
+                        "description": {"type": "string", "description": "New description (optional)"}
+                    },
+                    "required": ["user_id", "task_id"]
+                }
+            }
+        ]
+
+        # Prepare conversation history for Gemini
+        gemini_history = []
+        for msg in messages:
+            gemini_history.append({
+                "role": msg.role,
+                "parts": [msg.content]
+            })
+
+        # Add the current user message
+        gemini_history.append({
+            "role": "user",
+            "parts": [request.message]
+        })
+
+        # Configure Gemini with API key
+        genai.configure(api_key=settings.gemini_api_key)
+
+        # Initialize the model with tools
+        model = genai.GenerativeModel(
+            model_name='gemini-1.5-flash',
+            tools=tools
+        )
+
+        # Start a chat with history
+        chat = model.start_chat(history=gemini_history)
+
+        # Send the message to Gemini
+        try:
+            response = chat.send_message(request.message)
+
+            # Process the response
+            response_text = response.text
+            tool_calls = []
+            tool_results = []
+
+            # Check if Gemini wants to call any tools
+            if hasattr(response.candidates[0], 'content') and response.candidates[0].content.parts:
+                for part in response.candidates[0].content.parts:
+                    if hasattr(part, 'function_call'):
+                        # Extract function name and arguments
+                        function_call = part.function_call
+                        function_name = function_call.name
+
+                        # Convert args to dict
+                        args_dict = {}
+                        for key, value in function_call.args.items():
+                            args_dict[key] = value
+
+                        # Add to tool calls
+                        tool_call = {
+                            "type": function_name,
+                            "params": args_dict
+                        }
+                        tool_calls.append(tool_call)
+
+                        # Execute the tool
+                        if function_name == "add_task":
+                            result = await mcp_tools.add_task(**args_dict)
+                            tool_results.append(result)
+                        elif function_name == "list_tasks":
+                            result = await mcp_tools.list_tasks(**args_dict)
+                            tool_results.append(result)
+                        elif function_name == "complete_task":
+                            result = await mcp_tools.complete_task(**args_dict)
+                            tool_results.append(result)
+                        elif function_name == "delete_task":
+                            result = await mcp_tools.delete_task(**args_dict)
+                            tool_results.append(result)
+                        elif function_name == "update_task":
+                            result = await mcp_tools.update_task(**args_dict)
+                            tool_results.append(result)
+        except Exception as gemini_error:
+            # If Gemini fails (e.g., quota exceeded), fall back to rule-based processing
+            print(f"Gemini API error (this is expected with free-tier keys): {gemini_error}")
+
+            # Process the user's message to determine if any MCP tools should be called
+            tool_calls = []
+            response_text = ""
+
+            # Check for task-related commands in the user's message
+            message_lower = request.message.lower()
+
+            # Add task command
+            if any(word in message_lower for word in ["add", "create", "remember", "new task"]):
+                # Extract potential task title from the message
+                # Look for phrases like "add task to buy groceries" or "create a task for calling mom"
+                add_match = re.search(r"(?:add|create|remember).*?(?:task|to|for)?\s+(.+)", message_lower)
+                if add_match:
+                    title = add_match.group(1).strip().capitalize()
+                    if title:
+                        tool_call = {
+                            "type": "add_task",
+                            "params": {
+                                "user_id": user_id,
+                                "title": title
+                            }
+                        }
+                        tool_calls.append(tool_call)
+                        response_text = f"Sure, I've added the task '{title}' to your list."
+
+            # List tasks command
+            elif any(word in message_lower for word in ["show", "list", "see", "view", "what"]):
+                status = "all"
+                if "pending" in message_lower or "todo" in message_lower or "not done" in message_lower:
+                    status = "pending"
+                elif "completed" in message_lower or "done" in message_lower:
+                    status = "completed"
+
+                tool_call = {
+                    "type": "list_tasks",
+                    "params": {
+                        "user_id": user_id,
+                        "status": status
+                    }
+                }
+                tool_calls.append(tool_call)
+                response_text = f"Retrieving your {status} tasks..."
+
+            # Complete task command
+            elif any(word in message_lower for word in ["complete", "finish", "done", "completed"]):
+                # Extract task ID if mentioned - looking for numbers in the message
+                task_id_match = re.search(r'\b(\d+)\b', request.message)
+                if task_id_match:
+                    # For now, we'll list the user's tasks and find the one at the specified position
+                    # First, get all tasks for the user
+                    list_result = await mcp_tools.list_tasks(user_id=user_id, status="all")
+
+                    # Find the task by position (the nth task)
+                    task_position = int(task_id_match.group(1))
+                    if 1 <= task_position <= len(list_result):
+                        # Get the actual UUID of the task at that position
+                        target_task = list_result[task_position - 1]  # Arrays are 0-indexed
+                        actual_task_id = target_task["id"]
+
+                        tool_call = {
+                            "type": "complete_task",
+                            "params": {
+                                "user_id": user_id,
+                                "task_id": actual_task_id
+                            }
+                        }
+                        tool_calls.append(tool_call)
+                        response_text = f"Marking task '{target_task['title']}' as completed..."
+                    else:
+                        response_text = f"Could not find task #{task_position}. You have {len(list_result)} tasks."
+                else:
+                    response_text = "Which task would you like to mark as completed? Please specify the task number."
+
+            # Delete task command
+            elif any(word in message_lower for word in ["delete", "remove", "cancel"]):
+                # Extract task ID if mentioned
+                task_id_match = re.search(r'\b(\d+)\b', request.message)
+                if task_id_match:
+                    # For now, we'll list the user's tasks and find the one at the specified position
+                    # First, get all tasks for the user
+                    list_result = await mcp_tools.list_tasks(user_id=user_id, status="all")
+
+                    # Find the task by position (the nth task)
+                    task_position = int(task_id_match.group(1))
+                    if 1 <= task_position <= len(list_result):
+                        # Get the actual UUID of the task at that position
+                        target_task = list_result[task_position - 1]  # Arrays are 0-indexed
+                        actual_task_id = target_task["id"]
+
+                        tool_call = {
+                            "type": "delete_task",
+                            "params": {
+                                "user_id": user_id,
+                                "task_id": actual_task_id
+                            }
+                        }
+                        tool_calls.append(tool_call)
+                        response_text = f"Deleting task '{target_task['title']}'..."
+                    else:
+                        response_text = f"Could not find task #{task_position}. You have {len(list_result)} tasks."
+                else:
+                    response_text = "Which task would you like to delete? Please specify the task number."
+
+            # Update task command
+            elif any(word in message_lower for word in ["change", "update", "rename", "modify"]):
+                # Extract task ID and new title
+                task_id_match = re.search(r'\b(\d+)\b', request.message)
+                if task_id_match:
+                    # Extract new title
+                    title_match = re.search(r'(?:to|as)\s+(.+)', request.message.lower())
+                    if title_match:
+                        new_title = title_match.group(1).strip().capitalize()
+                        if new_title:
+                            # For now, we'll list the user's tasks and find the one at the specified position
+                            # First, get all tasks for the user
+                            list_result = await mcp_tools.list_tasks(user_id=user_id, status="all")
+
+                            # Find the task by position (the nth task)
+                            task_position = int(task_id_match.group(1))
+                            if 1 <= task_position <= len(list_result):
+                                # Get the actual UUID of the task at that position
+                                target_task = list_result[task_position - 1]  # Arrays are 0-indexed
+                                actual_task_id = target_task["id"]
+
+                                tool_call = {
+                                    "type": "update_task",
+                                    "params": {
+                                        "user_id": user_id,
+                                        "task_id": actual_task_id,
+                                        "title": new_title
+                                    }
+                                }
+                                tool_calls.append(tool_call)
+                                response_text = f"Updating task #{task_position} '{target_task['title']}' to '{new_title}'..."
+                            else:
+                                response_text = f"Could not find task #{task_position}. You have {len(list_result)} tasks."
+                    else:
+                        response_text = "What would you like to update the task to?"
+                else:
+                    response_text = "Which task would you like to update? Please specify the task number."
+
+            # If no specific command was detected, provide a general response
+            if not tool_calls:
+                response_text = f"I received your message: '{request.message}'. How can I assist you with your tasks today? You can ask me to add, list, complete, delete, or update tasks."
+
+            # Execute tool calls if any
+            for tool_call in tool_calls:
+                tool_type = tool_call["type"]
+                tool_params = tool_call["params"]
+
+                if tool_type == "add_task":
+                    result = await mcp_tools.add_task(**tool_params)
+                elif tool_type == "list_tasks":
+                    result = await mcp_tools.list_tasks(**tool_params)
+                elif tool_type == "complete_task":
+                    result = await mcp_tools.complete_task(**tool_params)
+                elif tool_type == "delete_task":
+                    result = await mcp_tools.delete_task(**tool_params)
+                elif tool_type == "update_task":
+                    result = await mcp_tools.update_task(**tool_params)
+
+        # Create assistant message
+        assistant_message_data = MessageCreate(
+            user_id=user_id,
+            conversation_id=conversation_id,
+            role="assistant",
+            content=response_text
+        )
+        assistant_message = await message_service.create_message(assistant_message_data)
+
+        # Create response
+        response = ChatResponse(
+            conversation_id=str(conversation_id),
+            response=response_text,
+            tool_calls=[ToolCall(type=tc["type"], params=tc["params"]) for tc in tool_calls],
+            timestamp=datetime.now().isoformat()
+        )
+
+        return response
+
+    except HTTPException:
+        # Re-raise HTTP exceptions as-is
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error processing chat request: {str(e)}")

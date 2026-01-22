@@ -24,7 +24,3 @@ class BaseModel(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(),
                        onupdate=func.now(), nullable=False)
-
-
-# Import all models here to ensure they are registered with SQLAlchemy
-# Note: Avoid importing here to prevent circular imports; instead, import in the main app

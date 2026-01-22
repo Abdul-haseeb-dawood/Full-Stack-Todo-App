@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Optional, Dict
 from uuid import UUID
 from app.schemas.task import TaskCreate, TaskUpdate, TaskResponse
 from app.repositories.task_repository import TaskRepository
@@ -23,6 +23,11 @@ class TaskService:
     async def get_all_tasks(self) -> List[TaskResponse]:
         """Get all tasks"""
         db_tasks = await self.task_repository.get_all_tasks()
+        return [TaskResponse.model_validate(task) for task in db_tasks]
+
+    async def get_tasks_by_filters(self, filters: Dict) -> List[TaskResponse]:
+        """Get tasks by filters (e.g., user_id, completed status)"""
+        db_tasks = await self.task_repository.get_tasks_by_filters(filters)
         return [TaskResponse.model_validate(task) for task in db_tasks]
 
     async def update_task(self, task_id: UUID, task_update: TaskUpdate) -> Optional[TaskResponse]:

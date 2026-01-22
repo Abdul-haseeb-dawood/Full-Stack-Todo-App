@@ -9,6 +9,7 @@ class Task(BaseModel):
 
     # Using PostgreSQL UUID type
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(String(255), nullable=False, index=True)  # String to accommodate various user ID formats
     title = Column(String(255), nullable=False)
     description = Column(Text, nullable=True)
     completed = Column(Boolean, nullable=False, default=False)
