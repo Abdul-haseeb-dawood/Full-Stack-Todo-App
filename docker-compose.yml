@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  database:
+    image: postgres:15
+    container_name: full-stack-todo-db
+    restart: always
+    environment:
+      POSTGRES_DB: todo_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - app-network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: full-stack-todo-backend
+    image: full-stack-todo-app-backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+      - /app/__pycache__
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@database:5432/todo_db
+      - GEMINI_API_KEY=AIzaSyBtbY5sSrKYqsnrL4k3p3xfizn_stEqk8M
+    depends_on:
+      - database
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: full-stack-todo-frontend
+    image: full-stack-todo-app-frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend:/app
+      - /app/.next
+    environment:
+      - BACKEND_URL=http://backend:8000
+    networks:
+      - app-network
+    restart: unless-stopped
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
